@@ -1901,8 +1901,26 @@ loadData();
 loadFromURL();
 populateAnimalSelects();
 
-// 動物占いフィールドがないクライアントに自動補完（マイグレーション）
+// 議事録・顧問料の税表記を税込に修正（マイグレーション）
 let migrated = false;
+db.clients.forEach(c => {
+  (c.mtgs || []).forEach(m => {
+    if (m.content && m.content.includes('165,000円税別')) {
+      m.content = m.content.replace(/165,000円税別/g, '165,000円（税込）');
+      migrated = true;
+    }
+  });
+  if (c.fee && c.fee.includes('税別')) {
+    c.fee = c.fee.replace('165,000円（税別）／181,500円（税込）', '165,000円（税込）').replace('税別', '（税込）');
+    migrated = true;
+  }
+  if (c.memo && c.memo.includes('165,000円税別')) {
+    c.memo = c.memo.replace('165,000円税別', '165,000円（税込）');
+    migrated = true;
+  }
+});
+
+// 動物占いフィールドがないクライアントに自動補完（マイグレーション）
 db.clients.forEach(c => {
   if (c.animalCore === undefined) {
     // kaimon事業のみ既知データを入れる。それ以外は空で初期化
