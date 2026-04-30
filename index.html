@@ -822,6 +822,8 @@ async function createSupabaseShare(clientId) {
       .select('id')
       .single();
     if (error) throw error;
+    c.lastShareId = data.id;
+    saveData();
     return data.id;
   } catch(e) {
     console.error('createSupabaseShare:', e);
@@ -832,16 +834,15 @@ async function createSupabaseShare(clientId) {
 async function syncFromSupabase() {
   const c = db.clients.find(x => x.id === currentClientId);
   if (!c) return;
+  if (!c.lastShareId) { showToast('まず「📤 共有」でURLを送ってください'); return; }
   showToast('同期中...');
   try {
     const { data, error } = await sb
       .from('komon_shares')
-      .select('actions, created_at')
-      .eq('client_id', currentClientId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (error || !data) { showToast('同期できるデータがありません'); return; }
+      .select('actions')
+      .eq('id', c.lastShareId)
+      .single();
+    if (error || !data) { showToast('共有データが見つかりません'); return; }
     let updated = 0;
     (data.actions || []).forEach(sbA => {
       const local = c.actions.find(a => a.id === sbA.id);
