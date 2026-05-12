@@ -975,6 +975,49 @@ function loadData() {
 function saveData() {
   localStorage.setItem('komonApp_v2', JSON.stringify(db));
 }
+function migrateData() {
+  const mizuki = db.clients.find(c => c.name === 'みづき');
+  if (!mizuki) return;
+  const mtgs = mizuki.mtgs || mizuki.mtgRecords || [];
+  if (mtgs.find(m => m.date === '2026-05-12')) return;
+  if (!mizuki.mtgs) mizuki.mtgs = mtgs;
+  mizuki.mtgs.push({
+    id: genId(), date: '2026-05-12',
+    content: '【第3回MTG】5月12日 プロダクトローンチ最終準備・進捗確認\n参加者：かねちん、みづき\n\n■ 前回ネクストアクション確認\n・終了式の動画素材あり→受講生の声として広告・LP活用予定\n・先輩動画：クリエイティブチームに渡し済み→14日に上がってくる予定\n・勉強会スライドのデザイン化：まだ指示できていなかった→今日実施予定\n・スレッツ2倍化・フックネタの指示：まだ→今日実施\n・動画視聴ページ：大橋さんに今日指示\n\n■ SNS状況\n・スレッツ：フォロワー10人増、週インプ2.2万→伸び率良好\n・インスタ：伸び率は良いがストーリーにリアルタイム写真が少ない→改善必要\n・コラム感想フォーム：2件\n\n■ META広告確認\n・現在5〜6本稼働、予算1日5000円\n・クリック単価は良好だがオプトインの把握が課題\n・クリエイティブ別流入追跡（エルメ連携）が優先課題\n・細谷さんへ個別連絡必要（返事なければ電話）\n\n■ 動画クリエイティブ方針\n・終了式動画（受講生の声）→1分に抽出して広告・LP活用\n・過去の3周年記念動画も活用\n・集合動画2パターン作成→プーさんへ依頼\n・プロコースインタビュー＋ダイジェスト動画→別クリエイティブスタッフに依頼\n\n■ 過去オプチャ活用\n・3つのオプチャ合計300〜400人へアプローチ\n・コラムLPリンク付きメッセージを配信（公式LINE誘導）\n\n■ 数値目標確認\n・勉強会予約目標：115名（1日平均30〜40名）\n・入会目標：20名、入会単価：297,000円\n・売上目標：約4,000,000円\n\n■ 大橋さんの件\n・業務内容が運用作業のみになっている（月10万）\n・マーケティング支援ではなく作業者化している状態\n・業務内容明確化の面談が必要（ZOOM or 電話）\n・将来的にはClaude Code自動化で内製化可能\n\n■ ストーリー強化方針\n・リアルタイム写真投稿を増やす（準備している感を見せる）\n・今日帰り道（京都→大分）もネタに活用できる\n\n■ 個別面談設計\n・25日以降に個別面談開始\n・予約時の生年月日から動物占い判断→かねちんが音声でアドバイス\n\n■ Claude Code自動化紹介\n・申し送りツール（グループLINEと連携）→6月以降に導入検討\n・メタ広告数字・エルメ数字の自動集計が可能\n・エルメのステップ・タグ操作も自動化対応予定',
+    actions: [
+      { text: 'みづき：フーさんにセミナースライドデザイン作成指示（20日まで）', done: false },
+      { text: 'みづき：フーさんにスレッツ投稿2倍化＋フックネタの指示', done: false },
+      { text: 'みづき：プーさんに集合動画2パターン作成依頼（終了式＋プロコース映像）', done: false },
+      { text: 'みづき：別クリエイティブスタッフにプロコースインタビュー＋ダイジェスト動画依頼', done: false },
+      { text: 'みづき：大橋さんに動画視聴ページ作成を今日指示', done: false },
+      { text: 'みづき：過去オプチャ（300〜400人）へコラムLPリンク付きLINE配信', done: false },
+      { text: 'みづき：勉強会前動画2本を今週中に撮影', done: false },
+      { text: 'みづき：大橋さんと業務内容明確化の面談（ZOOM or 電話）', done: false },
+      { text: 'みづき：広告反応が良いものに予算集中→大橋さんへ指示（集計表は6月以降）', done: false },
+      { text: 'みづき：インスタストーリーにリアルタイム写真投稿を増やす', done: false },
+      { text: 'みづき：細谷さんへ個別連絡（返事なければ電話）', done: false },
+      { text: 'かねちん：個別面談の動物占いアドバイス（25日以降、生年月日届いたら音声で）', done: false }
+    ]
+  });
+  const actions = mizuki.actions || mizuki.nextActions || [];
+  if (!mizuki.actions) mizuki.actions = actions;
+  const newActions = [
+    { id: genId(), text: '【最高・みづき】フーさんにセミナースライドデザイン作成指示（20日まで）', date: '2026-05-20', done: false },
+    { id: genId(), text: '【最高・みづき】フーさんにスレッツ投稿2倍化＋フックネタの指示', date: '2026-05-12', done: false },
+    { id: genId(), text: '【高・みづき】プーさんに集合動画2パターン作成依頼（終了式＋プロコース映像）', date: '', done: false },
+    { id: genId(), text: '【高・みづき】別クリエイティブスタッフにプロコースインタビュー＋ダイジェスト動画依頼', date: '', done: false },
+    { id: genId(), text: '【高・みづき】大橋さんに動画視聴ページ作成を今日指示', date: '2026-05-12', done: false },
+    { id: genId(), text: '【高・みづき】過去オプチャ（300〜400人）へコラムLPリンク付きLINE配信', date: '', done: false },
+    { id: genId(), text: '【高・みづき】勉強会前動画2本を今週中に撮影', date: '2026-05-16', done: false },
+    { id: genId(), text: '【高・みづき】大橋さんと業務内容明確化の面談（ZOOM or 電話）', date: '', done: false },
+    { id: genId(), text: '【中・みづき】広告反応が良いものに予算集中→大橋さんへ指示（集計表は6月以降）', date: '', done: false },
+    { id: genId(), text: '【中・みづき】インスタストーリーにリアルタイム写真投稿を増やす', date: '', done: false },
+    { id: genId(), text: '【中・みづき】細谷さんへ個別連絡（返事なければ電話）', date: '2026-05-12', done: false },
+    { id: genId(), text: '【高・かねちん】個別面談の動物占いアドバイス（25日以降、生年月日届いたら音声で）', date: '2026-05-25', done: false }
+  ];
+  newActions.forEach(a => mizuki.actions.push(a));
+  saveData();
+}
 function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
@@ -1898,6 +1941,7 @@ document.getElementById('modal-share-link').addEventListener('click', function(e
   {
 
 loadData();
+migrateData();
 loadFromURL();
 populateAnimalSelects();
 
