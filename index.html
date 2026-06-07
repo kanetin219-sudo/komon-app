@@ -968,12 +968,46 @@ let recognition = null;
 let isRecording = false;
 let currentFilter = 'all';
 
-function loadData() {
-  const saved = localStorage.getItem('komonApp_v2');
-  if (saved) db = JSON.parse(saved);
+async function loadData() {
+  try {
+    // Supabaseから読み込む
+    const { data, error } = await sb.from('komon_clients').select('*').order('updated_at');
+    if (!error && data && data.length > 0) {
+      db.clients = data.map(row => row.client_data);
+      return;
+    }
+    // Supabaseにデータなし → localStorageからマイグレーション
+    const saved = localStorage.getItem('komonApp_v2');
+    if (saved) {
+      db = JSON.parse(saved);
+      if (db.clients && db.clients.length > 0) {
+        showToast('データをクラウドに移行中…');
+        await saveData();
+        localStorage.removeItem('komonApp_v2');
+        showToast('✅ クラウド移行完了！');
+      }
+    }
+  } catch(e) {
+    console.warn('Supabase読み込み失敗、localStorageを使用:', e);
+    const saved = localStorage.getItem('komonApp_v2');
+    if (saved) db = JSON.parse(saved);
+  }
 }
-function saveData() {
-  localStorage.setItem('komonApp_v2', JSON.stringify(db));
+
+async function saveData() {
+  // localStorageにもバックアップ
+  localStorage.setItem('komonApp_v2_backup', JSON.stringify(db));
+  if (!db.clients || db.clients.length === 0) return;
+  try {
+    const upserts = db.clients.map(c => ({
+      id: c.id,
+      client_data: c,
+      updated_at: new Date().toISOString()
+    }));
+    await sb.from('komon_clients').upsert(upserts, { onConflict: 'id' });
+  } catch(e) {
+    console.warn('Supabase保存失敗:', e);
+  }
 }
 
 // ================================================================
@@ -1512,8 +1546,11 @@ function saveClient() {
   renderList();
 }
 
-function deleteClient() {
+async function deleteClient() {
   if (!confirm(`この顧問先を削除しますか？\nMTG記録・ネクストアクションも全て削除されます。`)) return;
+  try {
+    await sb.from('komon_clients').delete().eq('id', currentClientId);
+  } catch(e) { console.warn('Supabase削除失敗:', e); }
   db.clients = db.clients.filter(x => x.id !== currentClientId);
   saveData();
   closeModal();
@@ -1947,7 +1984,7 @@ document.getElementById('modal-share-link').addEventListener('click', function(e
   if (loadSharedView()) return;
   {
 
-loadData();
+await loadData();
 migrateData();
 loadFromURL();
 populateAnimalSelects();
