@@ -622,6 +622,21 @@
 
   <!-- MTG記録タブ -->
   <div id="tab-mtg" class="tab-content">
+    <div class="record-area" style="background:#f0f9ff;border:2px dashed #0284c7;margin-bottom:16px;">
+      <div class="record-area-title">🎬 動画ファイルを自動文字起こし</div>
+      <div class="form-group">
+        <label class="form-label">MP4・MOV・WebM などの動画ファイル</label>
+        <input type="file" id="video-upload" class="form-input" accept="video/*" onchange="handleVideoUpload(event)">
+        <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+          ✨ アップロードすると自動で文字起こしされて、下の「議事内容」に反映されます
+        </div>
+      </div>
+      <div id="upload-status" style="display:none;margin-top:8px;padding:10px;background:white;border-radius:8px;border-left:4px solid #0284c7;">
+        <div style="font-size:14px;font-weight:600;">処理中...</div>
+        <div id="upload-progress" style="font-size:12px;color:var(--text-muted);margin-top:4px;">動画から音声を抽出中...</div>
+      </div>
+    </div>
+
     <div class="record-area">
       <div class="record-area-title">🎙 MTG記録を追加</div>
       <div class="form-group">
@@ -1014,11 +1029,47 @@ async function saveData() {
 // データマイグレーション（localStorage更新用）
 // ================================================================
 function migrateData() {
-  const MKEY = 'komonApp_migrate_20260528';
-  if (localStorage.getItem(MKEY)) return; // 適用済みならスキップ
+  const MKEY1 = 'komonApp_migrate_20260528';
+  const MKEY2 = 'komonApp_migrate_20260622';
 
   const mizuki = db.clients.find(c => c.name === 'みづき');
   if (!mizuki) return;
+
+  // ── 2026-06-22 本日のMTG記録を追加（同日付がなければ）
+  if (!localStorage.getItem(MKEY2) && !mizuki.mtgs.some(m => m.date === '2026-06-22')) {
+    mizuki.mtgs.push({
+      id: genId(),
+      date: '2026-06-22',
+      content: `【2026年6月22日 みづき MTG議事内容】
+
+【契約・法務関連】
+弁護士さんの指摘で契約内容の整合性を確認中。特に入会期の定義とサービス提供内容の明確性が重要。現在のLP画面と契約書の記載内容にズレがないか確認予定。指摘事項に基づいて契約書を修正します。
+
+【マーケティング施策の進行状況】
+新規LP画像はフウさんが作成中でまだ完成していません。LINE登録フロー用にA-B-C-D等の複数の広告QRコードで分けており、ウェビナーLP（Ever LP）のテストも進めています。セルフスタディコース等の複数オプションで検証中。
+
+【広告運用の課題と改善案】
+現在の問題点は、親セットの予算で全体管理されているため、個別広告への予算配分調整が難しい状況。高校ごとにターゲットを分けてテストしたいが、親セット配下の子広告では個別の予算設定ができないのが制約。いい広告には1万5000円、様子見の広告には2000円という柔軟な配分を目指しています。ウェディング・ペット関連の新規クリエイティブ制作も検討中。
+
+【システム開発・測定体制】
+Evereverで高校別登録数分析（トルケロ）をスプシで構築中。各高校ごとのコンバージョン測定が必須。LINE配信設定とEvereverの連携テストも並行進行しています。
+
+【ネクストアクション】
+リンク変更テスト完了後に本運用開始。高校別ターゲット調整の実装進める。次回MTG：6月24日（木）10時予定。`,
+      actions: [
+        { text: '弁護士からの指摘事項に基づいて契約書を修正する', done: false },
+        { text: '新規LP画像の進捗確認（フウさんに連絡）', done: false },
+        { text: 'META広告の予算配分を個別調整できるように設定を改善する', done: false },
+        { text: 'トルケロ（高校別登録数分析）を完成させる', done: false },
+        { text: 'ウェディング・ペット関連のクリエイティブ制作', done: false },
+        { text: 'LINE配信とEvereverの連携テスト完了', done: false }
+      ]
+    });
+    saveData();
+    localStorage.setItem(MKEY2, '1');
+  }
+
+  if (localStorage.getItem(MKEY1)) return; // 05-28は適用済みならスキップ
 
   // ── 第3回MTG を追加（同日付がなければ）
   if (!mizuki.mtgs.some(m => m.date === '2026-05-28')) {
@@ -1537,6 +1588,11 @@ function saveClient() {
     document.getElementById('karte-company').textContent = c.company;
     showToast('更新しました');
   } else {
+    // 重複チェック：同じ名前の顧問先がないか確認
+    if (db.clients.some(c => c.name === name)) {
+      showToast(`「${name}」は既に登録されています。重複追加はできません。`);
+      return;
+    }
     const newClient = { id: genId(), ...data, mtgs: [], actions: [] };
     db.clients.push(newClient);
     saveData();
@@ -2120,6 +2176,67 @@ if (db.clients.length === 0) {
 
   }
 })();
+
+// 動画アップロード＆自動文字起こし
+async function handleVideoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const statusDiv = document.getElementById('upload-status');
+  const progressDiv = document.getElementById('upload-progress');
+
+  statusDiv.style.display = 'block';
+  progressDiv.textContent = '🎬 動画をサーバーに送信中...';
+
+  try {
+    const formData = new FormData();
+    formData.append('video', file);
+
+    progressDiv.textContent = '🎬 動画をサーバーに送信中...';
+    const response = await fetch('http://localhost:3000/api/transcribe', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`サーバーエラー: ${response.status}`);
+    }
+
+    progressDiv.textContent = '🤖 文字起こし処理中...';
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || '処理に失敗しました');
+    }
+
+    progressDiv.textContent = '📝 内容をまとめ中...';
+
+    if (data.summary) {
+      // 要約テキストを議事内容に入力
+      document.getElementById('transcript').value = data.summary;
+      progressDiv.innerHTML = `✅ 完了！<br><strong>要約済みの議事録が入力されました</strong>`;
+
+      setTimeout(() => {
+        statusDiv.style.display = 'none';
+        document.getElementById('video-upload').value = '';
+      }, 2000);
+    } else if (data.transcript) {
+      // 要約がない場合は、そのまま文字起こしテキストを入力
+      document.getElementById('transcript').value = data.transcript;
+      progressDiv.innerHTML = `✅ 完了！<br><strong>${data.transcript.substring(0, 50)}...</strong>`;
+
+      setTimeout(() => {
+        statusDiv.style.display = 'none';
+        document.getElementById('video-upload').value = '';
+      }, 2000);
+    } else {
+      throw new Error('結果が返されませんでした');
+    }
+  } catch (error) {
+    progressDiv.innerHTML = `❌ エラー: ${error.message}`;
+    progressDiv.style.color = '#dc2626';
+  }
+}
 </script>
 </body>
 </html>
