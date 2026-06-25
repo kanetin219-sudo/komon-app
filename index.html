@@ -2189,8 +2189,15 @@ async function handleVideoUpload(event) {
   progressDiv.textContent = '🎬 動画をサーバーに送信中...';
 
   try {
+    // 現在の顧問を取得（なければアラート）
+    const clientId = currentClientId;
+    if (!clientId) {
+      throw new Error('顧問先を選択してください');
+    }
+
     const formData = new FormData();
     formData.append('video', file);
+    formData.append('clientId', clientId);
 
     progressDiv.textContent = '🎬 動画をサーバーに送信中...';
     const response = await fetch('http://localhost:3000/api/transcribe', {
@@ -2209,28 +2216,43 @@ async function handleVideoUpload(event) {
       throw new Error(data.error || '処理に失敗しました');
     }
 
-    progressDiv.textContent = '📝 内容をまとめ中...';
+    progressDiv.textContent = '✨ ネクストアクション抽出中...';
 
-    if (data.summary) {
-      // 要約テキストを議事内容に入力
-      document.getElementById('transcript').value = data.summary;
-      progressDiv.innerHTML = `✅ 完了！<br><strong>要約済みの議事録が入力されました</strong>`;
+    // Supabase に自動保存済みの場合
+    if (data.savedToDatabase) {
+      progressDiv.innerHTML = `✅ 完了！<br><strong>MTGを自動保存しました</strong><br>📝 ${data.nextActions.length}個のネクストアクションを抽出`;
 
-      setTimeout(() => {
-        statusDiv.style.display = 'none';
-        document.getElementById('video-upload').value = '';
-      }, 2000);
-    } else if (data.transcript) {
-      // 要約がない場合は、そのまま文字起こしテキストを入力
-      document.getElementById('transcript').value = data.transcript;
-      progressDiv.innerHTML = `✅ 完了！<br><strong>${data.transcript.substring(0, 50)}...</strong>`;
+      // 顧問データを再読込
+      const client = db.clients.find(c => c.id === clientId);
+      if (client) {
+        renderClientDetail(client);
+      }
 
       setTimeout(() => {
         statusDiv.style.display = 'none';
         document.getElementById('video-upload').value = '';
-      }, 2000);
+      }, 3000);
     } else {
-      throw new Error('結果が返されませんでした');
+      // 手動確認・修正が必要な場合
+      document.getElementById('transcript').value = data.summary;
+
+      // ネクストアクションプレビューを表示
+      let actionsHtml = '';
+      if (data.nextActions && data.nextActions.length > 0) {
+        actionsHtml = `<div style="margin-top:8px;padding:8px;background:#f0f9ff;border-radius:6px;border-left:3px solid #0284c7;">
+          <strong>抽出されたネクストアクション (${data.nextActions.length}件):</strong>
+          <ul style="margin:4px 0 0 16px;font-size:12px;">
+            ${data.nextActions.map(a => `<li>${a.text}</li>`).join('')}
+          </ul>
+        </div>`;
+      }
+
+      progressDiv.innerHTML = `✅ 完了！<br><strong>要約済みの議事録が入力されました</strong>${actionsHtml}`;
+
+      setTimeout(() => {
+        statusDiv.style.display = 'none';
+        document.getElementById('video-upload').value = '';
+      }, 3000);
     }
   } catch (error) {
     progressDiv.innerHTML = `❌ エラー: ${error.message}`;
