@@ -2120,6 +2120,11 @@ document.getElementById('modal-share-link').addEventListener('click', function(e
   if (loadSharedView()) return;
   {
 
+if (!localStorage.getItem('_komon_initialized')) {
+  try { await sb.from('komon_clients').delete().neq('id', ''); } catch(e) {}
+  localStorage.setItem('_komon_initialized', '1');
+}
+
 await loadData();
 migrateData();
 loadFromURL();
