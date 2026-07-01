@@ -46,20 +46,7 @@
     box-shadow: 0 2px 8px rgba(37,99,235,0.3);
   }
   header h1 { font-size: 18px; font-weight: 700; }
-  .header-actions { display: flex; gap: 8px; align-items: center; }
-
-  /* 設定モーダル */
-  .settings-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; align-items: center; justify-content: center; }
-  .settings-modal.open { display: flex; }
-  .settings-content { background: white; padding: 24px; border-radius: 12px; max-width: 400px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
-  .settings-content h3 { margin-bottom: 16px; font-size: 18px; font-weight: 700; }
-  .settings-field { margin-bottom: 12px; }
-  .settings-field label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px; }
-  .settings-field input { width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
-  .settings-actions { display: flex; gap: 8px; margin-top: 16px; }
-  .settings-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
-  .settings-actions .btn-success { background: #16a34a; color: white; }
-  .settings-actions .btn-ghost { background: #f1f5f9; color: #1e293b; border: 1px solid #e2e8f0; }
+  .header-actions { display: flex; gap: 8px; }
 
   /* ボタン共通 */
   .btn {
@@ -580,10 +567,10 @@
 <header>
   <h1>📋 顧問先管理</h1>
   <div class="header-actions">
+    <button class="btn btn-white btn-sm" onclick="openApiSettings()">⚙️ API設定</button>
     <button class="btn btn-white btn-sm" onclick="openShareModal()">📱 共有URL</button>
     <button class="btn btn-white btn-sm" onclick="exportData()">⬇ 保存</button>
     <button class="btn btn-white btn-sm" onclick="importData()">⬆ 読込</button>
-    <button class="btn btn-white btn-sm" onclick="openSettingsModal()">⚙ API設定</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
   </div>
 </header>
@@ -636,21 +623,6 @@
 
   <!-- MTG記録タブ -->
   <div id="tab-mtg" class="tab-content">
-    <div class="record-area" style="background:#f0f9ff;border:2px dashed #0284c7;margin-bottom:16px;">
-      <div class="record-area-title">🎬 動画ファイルを自動文字起こし</div>
-      <div class="form-group">
-        <label class="form-label">MP4・MOV・WebM などの動画ファイル</label>
-        <input type="file" id="video-upload" class="form-input" accept="video/*" onchange="handleVideoUpload(event)">
-        <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
-          ✨ アップロードすると自動で文字起こしされて、下の「議事内容」に反映されます
-        </div>
-      </div>
-      <div id="upload-status" style="display:none;margin-top:8px;padding:10px;background:white;border-radius:8px;border-left:4px solid #0284c7;">
-        <div style="font-size:14px;font-weight:600;">処理中...</div>
-        <div id="upload-progress" style="font-size:12px;color:var(--text-muted);margin-top:4px;">動画から音声を抽出中...</div>
-      </div>
-    </div>
-
     <div class="record-area">
       <div class="record-area-title">🎙 MTG記録を追加</div>
       <div class="form-group">
@@ -658,15 +630,23 @@
         <input type="date" id="mtg-date" class="form-input">
       </div>
       <div class="form-group">
-        <label class="form-label">議事内容（テキスト入力 または 音声録音）</label>
+        <label class="form-label">議事内容（動画/音声 または テキスト入力）</label>
         <div class="record-controls">
+          <button class="record-btn" onclick="document.getElementById('videoUpload').click()" title="動画/音声ファイル">📹</button>
+          <input type="file" id="videoUpload" accept="video/*,audio/*" style="display:none" onchange="uploadVideo(event)">
           <button class="record-btn" id="recordBtn" onclick="toggleRecording()" title="音声録音">🎤</button>
           <div>
-            <div class="record-status" id="record-status">タップで録音開始</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">音声が自動でテキスト化されます</div>
+            <div class="record-status" id="record-status">📹 ファイル選択 / 🎤 録音 / テキスト入力</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">動画・音声ファイルなら自動で文字起こし＆処理</div>
           </div>
         </div>
-        <textarea id="transcript" class="transcript-box" placeholder="ここに議事内容を入力、または音声録音してください..."></textarea>
+        <div id="upload-progress" style="display:none;margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--primary);margin-bottom:4px;">処理中... ⏳</div>
+          <div style="width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+            <div id="progress-bar" style="width:0%;height:100%;background:var(--primary);transition:width 0.3s;"></div>
+          </div>
+        </div>
+        <textarea id="transcript" class="transcript-box" placeholder="ここに議事内容を入力、または動画/音声ファイルをUP、または音声録音してください..."></textarea>
       </div>
       <div class="extract-btn-row">
         <button class="btn btn-success btn-sm" onclick="extractActions()">✨ ネクストアクションを自動抽出</button>
@@ -779,6 +759,27 @@
 
 <!-- 共有ページ（読み取り専用・リンクアクセス時） -->
 <div id="page-share" style="display:none;"></div>
+
+<!-- API設定モーダル -->
+<div class="modal-overlay" id="modal-api-settings">
+  <div class="modal">
+    <div class="modal-title">
+      <span>⚙️ API設定</span>
+      <button class="modal-close" onclick="closeApiSettings()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">API URL</label>
+      <input type="text" id="api-url-input" class="form-input" placeholder="例: http://localhost:3000 または https://my-company-lr4e.onrender.com">
+      <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+        📝 MTG記録の自動処理に使用します。空白の場合はローカル（localhost:3000）を使用します。
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:16px;gap:8px;">
+      <button class="btn btn-primary" onclick="saveApiUrl()" style="flex:1;">✅ 保存</button>
+      <button class="btn btn-ghost" onclick="closeApiSettings()" style="flex:1;">キャンセル</button>
+    </div>
+  </div>
+</div>
 
 <!-- 共有URLモーダル -->
 <div class="modal-overlay" id="modal-share">
@@ -1002,7 +1003,17 @@ async function loadData() {
     // Supabaseから読み込む
     const { data, error } = await sb.from('komon_clients').select('*').order('updated_at');
     if (!error && data && data.length > 0) {
-      db.clients = data.map(row => row.client_data);
+      // 重複排除：idが同じ場合は最後（最新）のものだけを保持
+      const seenIds = new Set();
+      const uniqueData = [];
+      for (let i = data.length - 1; i >= 0; i--) {
+        const id = data[i].id;
+        if (!seenIds.has(id)) {
+          seenIds.add(id);
+          uniqueData.unshift(data[i]);
+        }
+      }
+      db.clients = uniqueData.map(row => row.client_data);
       return;
     }
     // Supabaseにデータなし → localStorageからマイグレーション
@@ -1043,47 +1054,11 @@ async function saveData() {
 // データマイグレーション（localStorage更新用）
 // ================================================================
 function migrateData() {
-  const MKEY1 = 'komonApp_migrate_20260528';
-  const MKEY2 = 'komonApp_migrate_20260622';
+  const MKEY = 'komonApp_migrate_20260528';
+  if (localStorage.getItem(MKEY)) return; // 適用済みならスキップ
 
   const mizuki = db.clients.find(c => c.name === 'みづき');
   if (!mizuki) return;
-
-  // ── 2026-06-22 本日のMTG記録を追加（同日付がなければ）
-  if (!localStorage.getItem(MKEY2) && !mizuki.mtgs.some(m => m.date === '2026-06-22')) {
-    mizuki.mtgs.push({
-      id: genId(),
-      date: '2026-06-22',
-      content: `【2026年6月22日 みづき MTG議事内容】
-
-【契約・法務関連】
-弁護士さんの指摘で契約内容の整合性を確認中。特に入会期の定義とサービス提供内容の明確性が重要。現在のLP画面と契約書の記載内容にズレがないか確認予定。指摘事項に基づいて契約書を修正します。
-
-【マーケティング施策の進行状況】
-新規LP画像はフウさんが作成中でまだ完成していません。LINE登録フロー用にA-B-C-D等の複数の広告QRコードで分けており、ウェビナーLP（Ever LP）のテストも進めています。セルフスタディコース等の複数オプションで検証中。
-
-【広告運用の課題と改善案】
-現在の問題点は、親セットの予算で全体管理されているため、個別広告への予算配分調整が難しい状況。高校ごとにターゲットを分けてテストしたいが、親セット配下の子広告では個別の予算設定ができないのが制約。いい広告には1万5000円、様子見の広告には2000円という柔軟な配分を目指しています。ウェディング・ペット関連の新規クリエイティブ制作も検討中。
-
-【システム開発・測定体制】
-Evereverで高校別登録数分析（トルケロ）をスプシで構築中。各高校ごとのコンバージョン測定が必須。LINE配信設定とEvereverの連携テストも並行進行しています。
-
-【ネクストアクション】
-リンク変更テスト完了後に本運用開始。高校別ターゲット調整の実装進める。次回MTG：6月24日（木）10時予定。`,
-      actions: [
-        { text: '弁護士からの指摘事項に基づいて契約書を修正する', done: false },
-        { text: '新規LP画像の進捗確認（フウさんに連絡）', done: false },
-        { text: 'META広告の予算配分を個別調整できるように設定を改善する', done: false },
-        { text: 'トルケロ（高校別登録数分析）を完成させる', done: false },
-        { text: 'ウェディング・ペット関連のクリエイティブ制作', done: false },
-        { text: 'LINE配信とEvereverの連携テスト完了', done: false }
-      ]
-    });
-    saveData();
-    localStorage.setItem(MKEY2, '1');
-  }
-
-  if (localStorage.getItem(MKEY1)) return; // 05-28は適用済みならスキップ
 
   // ── 第3回MTG を追加（同日付がなければ）
   if (!mizuki.mtgs.some(m => m.date === '2026-05-28')) {
@@ -1404,37 +1379,133 @@ const ACTION_KEYWORDS = [
   'アクション','タスク','TODO','To Do','宿題',
 ];
 
-function extractActions() {
-  const text = document.getElementById('transcript').value.trim();
-  if (!text) { showToast('テキストを入力してください'); return; }
+async function uploadVideo(event) {
+  const file = event.target.files[0];
+  if (!file) return;
 
-  const sentences = text
-    .split(/[。！？\n\.]+/)
-    .map(s => s.trim())
-    .filter(s => s.length > 4);
+  const progressDiv = document.getElementById('upload-progress');
+  const progressBar = document.getElementById('progress-bar');
+  progressDiv.style.display = 'block';
+  progressBar.style.width = '0%';
 
-  const extracted = sentences.filter(s =>
-    ACTION_KEYWORDS.some(kw => s.includes(kw))
-  );
+  try {
+    const formData = new FormData();
+    formData.append('video', file);
+    formData.append('clientId', currentClientId);
 
+    const apiUrl = localStorage.getItem('API_URL') || 'http://localhost:3000';
+
+    console.log('📤 ファイルをアップロード中...');
+    progressBar.style.width = '20%';
+
+    const response = await fetch(`${apiUrl}/api/transcribe`, {
+      method: 'POST',
+      body: formData
+    });
+
+    progressBar.style.width = '60%';
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || '処理に失敗しました');
+    }
+
+    progressBar.style.width = '90%';
+
+    // テキストエリアに文字起こし結果を反映
+    document.getElementById('transcript').value = data.transcript;
+
+    // 自動で要約・アクション抽出を実行
+    await extractActionsFromTranscript(data.transcript, data.nextActions);
+
+    progressBar.style.width = '100%';
+    showToast('✅ 文字起こし・処理完了！');
+
+    setTimeout(() => {
+      progressDiv.style.display = 'none';
+    }, 1000);
+
+  } catch (error) {
+    console.error('エラー:', error);
+    progressDiv.innerHTML = `<div style="background:#fee2e2;padding:12px;border-radius:8px;font-size:13px;color:#991b1b;">❌ エラー: ${error.message}</div>`;
+  }
+
+  // ファイル入力をリセット
+  event.target.value = '';
+}
+
+async function extractActionsFromTranscript(text, nextActions) {
   const preview = document.getElementById('extract-preview');
-  if (extracted.length === 0) {
-    preview.style.display = 'block';
+  preview.style.display = 'block';
+
+  if (!nextActions || nextActions.length === 0) {
     preview.innerHTML = `<div style="background:#fef9c3;padding:12px;border-radius:8px;font-size:13px;color:#92400e;">アクションが検出できませんでした。手動でネクストアクションを追加してください。</div>`;
     return;
   }
 
-  preview.style.display = 'block';
   preview.innerHTML = `
     <div style="background:#f0fdf4;padding:12px;border-radius:8px;">
-      <div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:8px;">✨ 抽出されたアクション（${extracted.length}件）</div>
-      ${extracted.map((a, i) => `
+      <div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:8px;">✨ 抽出されたアクション（${nextActions.length}件）</div>
+      ${nextActions.map((a, i) => `
       <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:13px;">
         <input type="checkbox" checked id="ea-${i}" style="margin-top:2px;">
-        <span>${esc(a)}</span>
+        <span>${esc(a.text)}</span>
       </label>`).join('')}
-      <button class="btn btn-success btn-sm" style="margin-top:8px;" onclick="addExtractedActions(${JSON.stringify(extracted).replace(/"/g,'&quot;')})">チェックしたものを追加</button>
+      <button class="btn btn-success btn-sm" style="margin-top:8px;" onclick="addExtractedActions(${JSON.stringify(nextActions.map(a => a.text)).replace(/"/g,'&quot;')})">チェックしたものを追加</button>
     </div>`;
+}
+
+async function extractActions() {
+  const text = document.getElementById('transcript').value.trim();
+  if (!text) { showToast('テキストを入力してください'); return; }
+
+  const preview = document.getElementById('extract-preview');
+  preview.style.display = 'block';
+  preview.innerHTML = `<div style="background:#f0fdf4;padding:12px;border-radius:8px;text-align:center;">⏳ GPT で分析中...</div>`;
+
+  try {
+    // API URL を localStorage から取得（デフォルトはローカル）
+    const apiUrl = localStorage.getItem('API_URL') || 'http://localhost:3000';
+
+    const response = await fetch(`${apiUrl}/api/extract-text`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transcript: text,
+        clientId: currentClientId
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || '処理に失敗しました');
+    }
+
+    // 要約をテキストエリアに反映
+    document.getElementById('transcript').value = `【議事録】\n${data.summary}\n\n【元テキスト】\n${text}`;
+
+    const extracted = data.nextActions || [];
+    if (extracted.length === 0) {
+      preview.innerHTML = `<div style="background:#fef9c3;padding:12px;border-radius:8px;font-size:13px;color:#92400e;">アクションが検出できませんでした。手動でネクストアクションを追加してください。</div>`;
+      return;
+    }
+
+    preview.innerHTML = `
+      <div style="background:#f0fdf4;padding:12px;border-radius:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--success);margin-bottom:8px;">✨ 抽出されたアクション（${extracted.length}件）</div>
+        ${extracted.map((a, i) => `
+        <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:13px;">
+          <input type="checkbox" checked id="ea-${i}" style="margin-top:2px;">
+          <span>${esc(a.text)}</span>
+        </label>`).join('')}
+        <button class="btn btn-success btn-sm" style="margin-top:8px;" onclick="addExtractedActions(${JSON.stringify(extracted.map(a => a.text)).replace(/"/g,'&quot;')})">チェックしたものを追加</button>
+      </div>`;
+  } catch (error) {
+    console.error('エラー:', error);
+    preview.innerHTML = `<div style="background:#fee2e2;padding:12px;border-radius:8px;font-size:13px;color:#991b1b;">❌ エラー: ${esc(error.message)}</div>`;
+  }
 }
 
 function addExtractedActions(actions) {
@@ -1602,11 +1673,6 @@ function saveClient() {
     document.getElementById('karte-company').textContent = c.company;
     showToast('更新しました');
   } else {
-    // 重複チェック：同じ名前の顧問先がないか確認
-    if (db.clients.some(c => c.name === name)) {
-      showToast(`「${name}」は既に登録されています。重複追加はできません。`);
-      return;
-    }
     const newClient = { id: genId(), ...data, mtgs: [], actions: [] };
     db.clients.push(newClient);
     saveData();
@@ -2154,7 +2220,26 @@ if (db.clients.length === 0) {
             { text: 'みづき/ふうさん：同一アフレコ＋素材差替5パターンのABテスト実施', done: false },
             { text: 'みづき：9月広島イベントのロケハン・会場候補（低テーブル・動線・照明・収容数・費用）を調査', done: false }
           ]
-        }
+,
+        {
+          id: genId(),
+          date: '2026-06-27',
+          content: '【第4回MTG】顧問契約の進め方、定額課金販売・広告・組織・AI活用・アプリ化・ナレッジ運用について\n参加者：かねちん、みづき\n\n### 概要\n\n顧問契約の進め方、定額課金（パンのレシピ）販売の導線と無料特典、広告とローンチの設計、組織とコスト見直しを軸に議論。人工知能活用（クロード・コード／クロード・デザイン／ジーピーティー）の使い分け、ナレッジ運用、ディスコードやグーグル連携、予約・管理アプリの構築と自動化、地図検索最適化の運用、動画制作自動化、カメラ設定まで具体策を共有。\n\n東京大学の学生と別会社での新規事業構想、面談／販売運用の最適化も扱い、当面の実装タスク（特典・スライド・導線・アプリ化）を確認した。\n\n### 顧問契約の進め方を明確化\n\n#### 契約条件と関与の柔軟性\n\n* 最低期間は6ヶ月で買い切りではない。\n* 期間中でも関与度の上げ下げや契約プラン変更、コスト削減に伴う関わり方の調整が可能。\n* 立ち上げ前や内製化の局面など、タイミングに応じて役割を再定義。\n\n#### 優先順位と土台整備\n\n* 当初は人工知能導入希望だったが、組織や業務運用の整備を先行すべきと判断。\n* 混乱した業務に人工知能を入れても効果が出にくく、土台整備が先決。\n* 資金づくりは広告・訴求改善が直接的で、人工知能は主に効率化・コスト削減用途。\n\n### 定額課金の販売導線とローンチ設計を再設計\n\n#### 無料特典の方針\n\n* 質疑応答は特典価値が弱く、商品の一部（一般的なレシピや改良ポイント）を出す方が有効。\n* 実績の打ち出しと「ここで学べばこう変わる」の明確化で欲求を喚起。\n* 質疑応答100選など、既存データの価値化も特典として有望。\n\n#### ローンチと常時販売の併用\n\n* 広告経由は「今すぐ入りたい」層のため常時導線が必須。案内ページや1本動画で即購入まで接続。\n* 自然流入は月初ローンチ（例：1〜5日）を継続し、連絡アプリや写真投稿で告知。\n* 広告と自然流入の2つの導線を並走させ、獲得熱の減衰を防止。\n\n#### 会員サイトの仕様と表現整合\n\n* 掲載レシピは「入会から1ヶ月閲覧可能」に仕様変更し、月跨ぎの不公平感を回避。\n* 短尺動画等の月別告知と実際の提供仕様を一致させ、信用毀損を防止。\n\n### 組織・コスト運営を見直し\n\n#### コスト把握と削減\n\n* 毎月のコスト内訳を可視化し、利益率向上のため過剰支出を削減。\n* 初期費用が低い写真投稿事業でも、チーム規模の肥大化は要注意。\n\n#### 役割分担とレスポンス\n\n* レシピ等「本人しかできない」領域に集中し、秘書等が裏方を担う体制へ。\n* 返信の早い人材の参画で業務推進力が向上。\n\n### データ活用による案内ページ／コンテンツ強化\n\n#### ディスコードのデータの一次情報化\n\n* 質問／回答ログを応用プログラミング接続／自動処理用プログラム経由で取得し、表形式化・頻出語ランキング等で整理。\n* 案内ページ、短尺動画、スレッド投稿、長文投稿、音声配信用の台本まで再利用可能。\n* 講座の生の悩みを反映した訴求で対象顧客との適合性を高める。\n\n#### 段階配信と即時販売\n\n* 5日間配信は視聴離脱懸念があり、1本化動画＋案内ページで即訴求が有効。\n* 価格・商品力に応じて構成を調整し、特典フックを広告の制作物に反映。\n\n### 人工知能活用とナレッジ運用の最適化\n\n#### ツール使い分けと作業の流れ\n\n* 台本生成はジーピーティーが強く、壁打ちは対話で精度を出してから個人向け知識に移送。\n* クロード・コードは指示実装に強く、クロード・デザインはスライド出力とキャンバ連携が利点。\n* ジン・スパークは高速だが有料。クロード・デザインで十分運用可能。\n\n#### ナレッジ移行と品質管理\n\n* 対話履歴はファイル化して新規対話に投入し、知識を統合。\n* 先に精度の高い成果物を知識に入れ、以降の壁打ち精度を向上。\n* 自動長時間実行は確認ステップを設け、誤動作／削除リスクを回避。\n\n### アプリ／自動化の構築と運用\n\n#### アプリの定義とリンク化\n\n* 「アプリ」はローカルで生成したウェブをリンク化したもの（HTML化）。検索露出は前提外。\n* リンク化にはアプリ集約ハブ、パース・エル、スーパーベース等の連携が必要。\n\n#### 予約／管理／誘導の実装例\n\n* 予約システム：管理画面でブロック設定、電子郵便の自動通知、リマインド送付、連絡アプリのメニュー連携。\n* 会計締め／売上入力：日次入力で曜日・人員最適化の意思決定に活用。\n* 口コミ誘導ページ：過去口コミ提示と書いてほしい語句を可視化し、グーグルへ遷移。\n\n#### データ保全と復旧\n\n* 顧客データ消失の経験からスーパーベースに課金しバックアップ強化。\n* 電子郵便の通知ログからの手動復元も実施したが、今後は雲上保存を徹底。\n\n#### 外部連携の活用\n\n* ディスコード：自動処理用プログラムを追加でチャンネル単位／期間指定のデータ取得を設計。\n* 連絡アプリ：グループ／個別の使い分けで講師通知・自動化を検討。\n* グーグル応用プログラミング：口コミ返信の自動化、グーグル・ビジネス運用、地図検索最適化支援の受託化も視野。\n\n#### 表計算／既存機能の利用\n\n* 申込データの自動反映は既存機能でも実現可能。まずは工数対効果を優先。\n* 定例作業（質問会アーカイブ等）はグーグル・ドライブ経由で文字起こし・知識化。\n\n### 新規事業構想と体制設計\n\n#### 東京大学の学生との別会社・講師拡張\n\n* 東京大学の学生との共同で別会社を設立し、講師を増やして連鎖的な集客を想定。\n* 東京大学の学生は在学中で人工知能志向が強く、市場開拓は不得手想定。裏方（コンテンツ／調査）を担当。\n\n#### 集客とブランドづくり\n\n* 表の発信者増加を踏まえ、裏方需要の高まりを見越した体制へシフト。\n* 牽引するブランド／牽制の形成と広告運用の両立を意識。\n\n### 面談・販売の運用改善\n\n#### 面談設計\n\n* 面談は長時間化を避け、意思決定前提の流れで短く締める。\n* 盛り上がりだけで終わると価値が伝わらず、入会判断に至りにくい。\n\n#### 多様な顧客行動への対応\n\n* 入会後にレッスン不参加で交流会のみ参加する例など、動機の多様性を前提に設計。\n* 基準価格の提示と期限設計で意思決定を後押し。\n\n#### 顧客タイプの扱い\n\n* 動物分類の先入観は誤判定リスクがあり、現状は手動判断を推奨。\n* 体験談・現場観察を知識化して補助的に活用。\n\n### 動画・制作物の効率化\n\n#### 台本・編集の自動化\n\n* 宣伝動画は40〜50分の型（約18,000文字）で過去成功事例を反映。\n* カット／字幕の自動化で10分動画が短時間で制作可能。細部は軽微な手直し。\n* 表紙画像はジーピーティーで自動生成し、月約10万円の外注費を削減。\n\n#### 撮影・画質の運用\n\n* 露出／背景のぼかし／被写体と背景の距離で表現を調整。自動設定運用で色の安定性を確保。\n* 太陽光など環境差に応じて白色点の調整／色味を当日調整。\n* 食品撮影は白の再現性（皿・背景）を重視。\n\n### リスクと運用上の注意点\n\n#### 人工知能過多と生産性の罠\n\n* 不要なアプリ量産・寝不足のリスク。実運用するものに限定して技能化・整理。\n* 自動化は確認プロセスを設け、誤処理や仕様ズレを防止。\n\n#### 表示と仕様の整合\n\n* 自然流入の月別訴求と実際の提供仕様を一致させ、顧客の信用を守る。\n* 貼り付け／編集ミス防止のため、ファイル化と履歴管理を徹底。',
+          actions: [
+            { text: '無料特典（商品の一部／質疑応答100選）の確定とスライド生成（クロード・デザイン／キャンバ）', done: false },
+            { text: '宣伝動画の台本作成→撮影→案内ページ接続。動画販売ページなし構成も検証', done: false },
+            { text: '広告は常時入会、自然流入は月初ローンチの二重導線を構築', done: false },
+            { text: '入会後1ヶ月閲覧仕様へ変更し、表示／案内と整合', done: false },
+            { text: '申込→表計算への自動反映を実装。既存機能の活用を優先', done: false },
+            { text: '予約／質問会の枠管理・通知の半自動化（申込フォーム→講師通知）', done: false },
+            { text: 'ディスコード連携（自動処理用プログラム設計）で悩みデータを取得し、案内ページ／台本へ展開', done: false },
+            { text: '既存アプリのリンク化手順（アプリ集約ハブ／パース・エル／スーパーベース）を整備', done: false },
+            { text: 'バックアップとアクセス権限を設定し、データ消失リスクを低減', done: false },
+            { text: '壁打ち成果物を個人向け知識に継続投入し、精度の高い応答基盤を育成', done: false },
+            { text: '講座／ライブ／アーカイブはテキスト化し、短尺動画／スレッド投稿等へ再利用', done: false }
+          ]
+        },
+              }
       ],
       actions: [
         { id: genId(), text: '【最高・大橋さん】広告ボタンをオプチャン誘導→公式ラインシナリオに変更・流入経路追跡設定', date: '', done: false },
@@ -2189,151 +2274,31 @@ if (db.clients.length === 0) {
 }
 
   }
-})();
 
-// 動画アップロード＆自動文字起こし
-async function handleVideoUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+  // ========== API設定 ==========
+  window.openApiSettings = function() {
+    const modal = document.getElementById('modal-api-settings');
+    const savedUrl = localStorage.getItem('API_URL');
+    document.getElementById('api-url-input').value = savedUrl || '';
+    modal.classList.add('open');
+  }
 
-  const statusDiv = document.getElementById('upload-status');
-  const progressDiv = document.getElementById('upload-progress');
+  window.closeApiSettings = function() {
+    document.getElementById('modal-api-settings').classList.remove('open');
+  }
 
-  statusDiv.style.display = 'block';
-  progressDiv.textContent = '🎬 動画をサーバーに送信中...';
-
-  try {
-    // 現在の顧問を取得（なければアラート）
-    const clientId = currentClientId;
-    if (!clientId) {
-      throw new Error('顧問先を選択してください');
-    }
-
-    // API URL を localStorage から取得（なければローカルホスト）
-    const apiUrl = localStorage.getItem('mtgApiUrl') || 'http://localhost:3000';
-    const transcribeUrl = `${apiUrl}/api/transcribe`;
-
-    const formData = new FormData();
-    formData.append('video', file);
-    formData.append('clientId', clientId);
-
-    progressDiv.textContent = '🎬 動画をサーバーに送信中...';
-    const response = await fetch(transcribeUrl, {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!response.ok) {
-      throw new Error(`サーバーエラー: ${response.status}`);
-    }
-
-    progressDiv.textContent = '🤖 文字起こし処理中...';
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.error || '処理に失敗しました');
-    }
-
-    progressDiv.textContent = '✨ ネクストアクション抽出中...';
-
-    // Supabase に自動保存済みの場合
-    if (data.savedToDatabase) {
-      progressDiv.innerHTML = `✅ 完了！<br><strong>MTGを自動保存しました</strong><br>📝 ${data.nextActions.length}個のネクストアクションを抽出`;
-
-      // 顧問データを再読込
-      const client = db.clients.find(c => c.id === clientId);
-      if (client) {
-        renderClientDetail(client);
-      }
-
-      setTimeout(() => {
-        statusDiv.style.display = 'none';
-        document.getElementById('video-upload').value = '';
-      }, 3000);
+  window.saveApiUrl = function() {
+    const url = document.getElementById('api-url-input').value.trim();
+    if (url) {
+      localStorage.setItem('API_URL', url);
+      showToast('API URL を保存しました');
     } else {
-      // 手動確認・修正が必要な場合
-      document.getElementById('transcript').value = data.summary;
-
-      // ネクストアクションプレビューを表示
-      let actionsHtml = '';
-      if (data.nextActions && data.nextActions.length > 0) {
-        actionsHtml = `<div style="margin-top:8px;padding:8px;background:#f0f9ff;border-radius:6px;border-left:3px solid #0284c7;">
-          <strong>抽出されたネクストアクション (${data.nextActions.length}件):</strong>
-          <ul style="margin:4px 0 0 16px;font-size:12px;">
-            ${data.nextActions.map(a => `<li>${a.text}</li>`).join('')}
-          </ul>
-        </div>`;
-      }
-
-      progressDiv.innerHTML = `✅ 完了！<br><strong>要約済みの議事録が入力されました</strong>${actionsHtml}`;
-
-      setTimeout(() => {
-        statusDiv.style.display = 'none';
-        document.getElementById('video-upload').value = '';
-      }, 3000);
+      localStorage.removeItem('API_URL');
+      showToast('API URL をリセットしました（デフォルト使用）');
     }
-  } catch (error) {
-    progressDiv.innerHTML = `❌ エラー: ${error.message}`;
-    progressDiv.style.color = '#dc2626';
+    closeApiSettings();
   }
-}
-
-// API 設定機能
-function openSettingsModal() {
-  const modal = document.getElementById('settingsModal');
-  const currentUrl = localStorage.getItem('mtgApiUrl') || 'http://localhost:3000';
-  document.getElementById('apiUrlInput').value = currentUrl;
-  modal.classList.add('open');
-}
-
-function closeSettingsModal() {
-  document.getElementById('settingsModal').classList.remove('open');
-}
-
-function saveApiSettings() {
-  const apiUrl = document.getElementById('apiUrlInput').value.trim();
-
-  if (!apiUrl) {
-    showToast('❌ API URLを入力してください');
-    return;
-  }
-
-  localStorage.setItem('mtgApiUrl', apiUrl);
-  showToast(`✅ API URLを保存: ${apiUrl}`);
-  closeSettingsModal();
-}
-
-// 設定モーダル外クリックで閉じる
-document.addEventListener('DOMContentLoaded', function() {
-  const modal = document.getElementById('settingsModal');
-  if (modal) {
-    modal.addEventListener('click', function(e) {
-      if (e.target === modal) {
-        closeSettingsModal();
-      }
-    });
-  }
-});
+})();
 </script>
-
-<!-- 設定モーダル -->
-<div id="settingsModal" class="settings-modal">
-  <div class="settings-content">
-    <h3>⚙ API 設定</h3>
-    <div class="settings-field">
-      <label for="apiUrlInput">API サーバー URL</label>
-      <input type="text" id="apiUrlInput" placeholder="http://localhost:3000" />
-      <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
-        ローカル: http://localhost:3000<br>
-        クラウド: https://your-api.com
-      </div>
-    </div>
-    <div class="settings-actions">
-      <button class="btn-success" onclick="saveApiSettings()">✅ 保存</button>
-      <button class="btn-ghost" onclick="closeSettingsModal()">キャンセル</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
