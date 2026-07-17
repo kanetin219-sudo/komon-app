@@ -567,7 +567,6 @@
 <header>
   <h1>📋 顧問先管理</h1>
   <div class="header-actions">
-    <button class="btn btn-white btn-sm" onclick="addMocoClient()" title="mocoのMTG記録を一括登録">➕ moco追加</button>
     <button class="btn btn-white btn-sm" onclick="openApiSettings()">⚙️ API設定</button>
     <button class="btn btn-white btn-sm" onclick="openShareModal()">📱 共有URL</button>
     <button class="btn btn-white btn-sm" onclick="exportData()">⬇ 保存</button>
@@ -2274,6 +2273,26 @@ if (db.clients.length === 0) {
       ]
     }
   ];
+  // mocoデータを追加
+  db.clients.push({
+    id: genId(),
+    name: '中島 誠子',
+    alias: 'moco',
+    company: 'クライアントワーク講座',
+    industry: '講師・インフルエンサー',
+    status: 'active',
+    email: 'tabi.moco@gmail.com',
+    phone: '',
+    startDate: '2025-08-15',
+    fee: '',
+    memo: '全国旅行情報発信（@trevel_miyazaki）。インスタ10万フォロワー。クライアントワーク講座ホスト・MOSH展開中。',
+    animalCore: '', animalSurface: '', animalDecision: '', animalHope: '', animalHidden: '',
+    mtgs: [
+      { id: genId(), date: '2026-04-28', content: '【顧問・プロデュース生 1対1ミーティング】\n時間：10:26～11:25（約1時間）\n\n■mocoさんの近況\n・PR案件は落ち着いたが、クライアントワークが多忙（運用代行2件+キャスティング2件）\n・塗料会社の採用系運用代行が大変（ノウハウ不足で赤字状態）\n・Threadsは経験積みのため無料対応中\n\n■講座の課題\n・「売るまでの状態を作れていない」「売る力がない」\n・かねちんの提案：①外注で時間作る②運用回す③Meta広告→プロモ→個別面談の自動化\n\n■講座運営の悩み\n・受講生の熱が下がり気味、Discord投稿がない\n・かねちんアドバイス：講座主がスタンス作ることが重要。全員動くことは不可。200人いても実働は数十人が普通。交流会・作業会がおすすめ。\n\n■AI活用\n・かねちんはClaude Code+Canva連携で資料作成（GenSparkは解約）\n・ChatGPT Image 2（画像生成）が優秀\n・固定費が約10万円下がった\n\n■今後の方針\n・新規案件は停止（時間確保）\n・新アカウント（クライアントワーク発信用）作成予定\n・編集者：ゆりさんの編集者「フムーさん」を紹介可能（月20本対応）\n・ローンチ時期：7月中旬が目標。5月から投稿開始\n・サブスク：月1個別+LINE相談し放題で月9,800～9,900円\n・目標：1回のローンチで20人（1,000万円）' },
+      { id: genId(), date: '2026-06-12', content: '【顧問・プロデュース生 1対1 実績者対談】\n時間：12:56～14:29（約1時間33分）\n\n■自己紹介\nmocoさんの事業：全国旅行情報発信→インフルエンサーPR→クライアントワーク（運用代行・教育）\n\n■講座の成果（人生初の3,000万円超え！）\n・モニター生：4名集客→動画講義で次の集客に利用\n・第1期：6名集客→後に1名追加で7名\n・売上：1人当たり50万円×6名=350万円（初月）\n・以前はクライアント業やPRに限界があったが、講座でブレークスルー\n\n■ローンチ方法\n・ストーリーズ訴求→親しい友達130人に集約→スクリーニング→個別面談→申込\nモニター生→成果実績（4人全員契約）→その大きい成果を見せながく次の集客に繋ぐ\n\n■依頼前の悩み\n・漠然と講座は作りたかったが、きっかけがない\n・どうやって販売・作成すればいいか分からない\n・多くから「コンサル・セミナー資料を売ってほしい」の声→講座化を提案されて決断\n\n■効果的だった施策\n①ストーリーズ：細かく「1枚目はこれ、2枚目はこれ」と指示してもらえたので動けた\n②モニター生活用→録画編集（外注さん紹介）→全体的な売り方・訴求方法\n\n■二人三脚の効果\n「一人だったら絶対やってない。諦めていた」\n・かねちんの存在で動く→やらなきゃいけない→期日がある→終わらせなきゃいけない\n・PR案件が優先だったが、講座という目標ができて時間軸が広がった（6ヶ月のスケール）\n\n■プロデュース・顧問のおすすめ度\n「商品があるのにどう形にしていいか分からない、どう販売するか分からない」という人に向いてる\n\n■最後のメッセージ\n「かねちんさんを信じれば絶対大丈夫です。」' }
+    ],
+    actions: []
+  });
   saveData();
   renderList();
 }
@@ -2304,42 +2323,6 @@ if (db.clients.length === 0) {
     closeApiSettings();
   }
 
-  // ========== moco追加 ==========
-  window.addMocoClient = function() {
-    const mocoExists = db.clients.find(c => c.email === 'tabi.moco@gmail.com');
-    if (mocoExists) { showToast('mocoはすでに登録されています'); return; }
-
-    const mocoData = {
-      id: 'moco-' + Date.now(),
-      name: '中島 誠子',
-      alias: 'moco',
-      company: '（クライアントワーク講座）',
-      email: 'tabi.moco@gmail.com',
-      phone: '',
-      industry: '講師・コンサル',
-      status: 'active',
-      startDate: '2025-08-15',
-      fee: '',
-      memo: 'クライアントワーク講座ホスト。MOSH講座展開中。Threads自動投稿ダッシュボード等の実践事例あり。',
-      animalCore: '', animalSurface: '', animalDecision: '', animalHope: '', animalHidden: '',
-      mtgs: [
-        { id: 'm1', date: '2025-08-15', content: '顧問・プロデュース生 個別面談\n時間：10:00-11:00' },
-        { id: 'm2', date: '2025-10-01', content: '顧問・プロデュース生 個別面談\n時間：13:30-14:30' },
-        { id: 'm3', date: '2025-11-12', content: '顧問・プロデュース生 個別面談\n時間：22:00-23:00' },
-        { id: 'm4', date: '2025-12-08', content: '顧問・プロデュース生 個別面談\n時間：21:30-22:30' },
-        { id: 'm5', date: '2025-12-19', content: '顧問・プロデュース生 個別面談\n時間：15:00-16:00' },
-        { id: 'm6', date: '2026-01-08', content: '顧問・プロデュース生 個別面談\n時間：13:00-14:00' },
-        { id: 'm7', date: '2026-01-30', content: '顧問・プロデュース生 個別面談\n時間：10:00-11:00' },
-        { id: 'm8', date: '2026-04-28', content: '顧問・プロデュース生 個別面談\n時間：10:30-11:30' }
-      ],
-      actions: []
-    };
-
-    db.clients.push(mocoData);
-    saveData();
-    renderList();
-    showToast('✅ mocoを追加しました（MTG記録8件）');
-  }
 })();
 </script>
 </body>
