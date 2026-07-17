@@ -567,6 +567,7 @@
 <header>
   <h1>📋 顧問先管理</h1>
   <div class="header-actions">
+    <button class="btn btn-white btn-sm" onclick="addMocoClient()" title="mocoのMTG記録を一括登録">➕ moco追加</button>
     <button class="btn btn-white btn-sm" onclick="openApiSettings()">⚙️ API設定</button>
     <button class="btn btn-white btn-sm" onclick="openShareModal()">📱 共有URL</button>
     <button class="btn btn-white btn-sm" onclick="exportData()">⬇ 保存</button>
@@ -2301,6 +2302,43 @@ if (db.clients.length === 0) {
       showToast('API URL をリセットしました（デフォルト使用）');
     }
     closeApiSettings();
+  }
+
+  // ========== moco追加 ==========
+  window.addMocoClient = function() {
+    const mocoExists = db.clients.find(c => c.email === 'tabi.moco@gmail.com');
+    if (mocoExists) { showToast('mocoはすでに登録されています'); return; }
+
+    const mocoData = {
+      id: 'moco-' + Date.now(),
+      name: '中島 誠子',
+      alias: 'moco',
+      company: '（クライアントワーク講座）',
+      email: 'tabi.moco@gmail.com',
+      phone: '',
+      industry: '講師・コンサル',
+      status: 'active',
+      startDate: '2025-08-15',
+      fee: '',
+      memo: 'クライアントワーク講座ホスト。MOSH講座展開中。Threads自動投稿ダッシュボード等の実践事例あり。',
+      animalCore: '', animalSurface: '', animalDecision: '', animalHope: '', animalHidden: '',
+      mtgs: [
+        { id: 'm1', date: '2025-08-15', content: '顧問・プロデュース生 個別面談\n時間：10:00-11:00' },
+        { id: 'm2', date: '2025-10-01', content: '顧問・プロデュース生 個別面談\n時間：13:30-14:30' },
+        { id: 'm3', date: '2025-11-12', content: '顧問・プロデュース生 個別面談\n時間：22:00-23:00' },
+        { id: 'm4', date: '2025-12-08', content: '顧問・プロデュース生 個別面談\n時間：21:30-22:30' },
+        { id: 'm5', date: '2025-12-19', content: '顧問・プロデュース生 個別面談\n時間：15:00-16:00' },
+        { id: 'm6', date: '2026-01-08', content: '顧問・プロデュース生 個別面談\n時間：13:00-14:00' },
+        { id: 'm7', date: '2026-01-30', content: '顧問・プロデュース生 個別面談\n時間：10:00-11:00' },
+        { id: 'm8', date: '2026-04-28', content: '顧問・プロデュース生 個別面談\n時間：10:30-11:30' }
+      ],
+      actions: []
+    };
+
+    db.clients.push(mocoData);
+    saveData();
+    renderList();
+    showToast('✅ mocoを追加しました（MTG記録8件）');
   }
 })();
 </script>
