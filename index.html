@@ -1144,8 +1144,9 @@ function renderList(query = '', filter = currentFilter) {
     const actions = (c.actions || []).filter(a => !a.done);
     const lastMtg = c.mtgs && c.mtgs.length > 0 ? c.mtgs[c.mtgs.length - 1] : null;
     const nextAction = actions[0];
-    const statusLabel = { active: '契約中', paused: '一時停止', ended: '終了' }[c.status || 'active'];
-    const statusClass = { active: 'status-active', paused: 'status-paused', ended: 'status-ended' }[c.status || 'active'];
+    // 「顧問」「モニター」など既定以外のstatusは、そのまま表示する（undefinedにしない）
+    const statusLabel = { active: '契約中', paused: '一時停止', ended: '終了' }[c.status] || c.status || '契約中';
+    const statusClass = { active: 'status-active', paused: 'status-paused', ended: 'status-ended' }[c.status] || 'status-active';
 
     return `
     <div class="client-card" onclick="openKarte('${c.id}')">
@@ -1156,7 +1157,7 @@ function renderList(query = '', filter = currentFilter) {
       <div class="card-company">🏢 ${esc(c.company)}</div>
       ${c.email ? `<div class="card-contact">✉ ${esc(c.email)}</div>` : ''}
       <div class="card-meta">
-        <span class="card-badge badge-status ${statusClass}">${statusLabel}</span>
+        <span class="card-badge badge-status ${statusClass}">${esc(statusLabel)}</span>
         <span class="card-badge badge-mtg">📝 MTG ${mtgCount}回</span>
         <span class="card-badge badge-action">✅ 未完了 ${actions.length}件</span>
       </div>
@@ -1176,7 +1177,8 @@ function filterByStatus(status) {
 
 function esc(str) {
   if (!str) return '';
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  // SQLで直接INSERTされたレコードは数値のまま入ってくることがあるため、文字列に揃えてから処理する
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ========== カルテ画面 ==========
@@ -1219,7 +1221,7 @@ function renderAnimalCard(role, roleLabel, roleClass, animalName) {
 }
 
 function renderInfo(c) {
-  const statusLabel = { active: '契約中', paused: '一時停止', ended: '終了' }[c.status || 'active'];
+  const statusLabel = { active: '契約中', paused: '一時停止', ended: '終了' }[c.status] || c.status || '契約中';
   document.getElementById('info-content').innerHTML = `
     <table style="width:100%;font-size:14px;border-collapse:collapse;">
       ${row('担当者名', c.name)}
