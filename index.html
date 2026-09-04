@@ -1125,9 +1125,9 @@ function renderList(query = '', filter = currentFilter) {
   if (query) {
     const q = query.toLowerCase();
     list = list.filter(c =>
-      c.name.toLowerCase().includes(q) ||
-      c.company.toLowerCase().includes(q) ||
-      (c.industry || '').toLowerCase().includes(q)
+      String(c.name || '').toLowerCase().includes(q) ||
+      String(c.company || '').toLowerCase().includes(q) ||
+      String(c.industry || '').toLowerCase().includes(q)
     );
   }
   const container = document.getElementById('cards-container');
@@ -2122,10 +2122,10 @@ document.getElementById('modal-share-link').addEventListener('click', function(e
   if (loadSharedView()) return;
   {
 
-if (!localStorage.getItem('_komon_initialized')) {
-  try { await sb.from('komon_clients').delete().neq('id', ''); } catch(e) {}
-  localStorage.setItem('_komon_initialized', '1');
-}
+// 【削除済み】ここには localStorage に '_komon_initialized' が無いブラウザで
+// komon_clients を全削除する処理があった。新しい端末・シークレットウィンドウ・
+// サイトデータ消去のたびに全顧問先が消えるため撤去した。
+// 復活させる場合は、必ず対象を限定すること（全件 delete は不可）。
 
 await loadData();
 migrateData();
@@ -2134,18 +2134,20 @@ populateAnimalSelects();
 
 // 議事録・顧問料の税表記を税込に修正（マイグレーション）
 let migrated = false;
+// 文字列以外（SQLで直接INSERTした数値のfeeなど）は置換対象外。
+// typeof で弾かないと .includes が無くて例外になり、以降の renderList() まで到達しない
 db.clients.forEach(c => {
   (c.mtgs || []).forEach(m => {
-    if (m.content && m.content.includes('165,000円税別')) {
+    if (typeof m.content === 'string' && m.content.includes('165,000円税別')) {
       m.content = m.content.replace(/165,000円税別/g, '165,000円（税込）');
       migrated = true;
     }
   });
-  if (c.fee && c.fee.includes('税別')) {
+  if (typeof c.fee === 'string' && c.fee.includes('税別')) {
     c.fee = c.fee.replace('165,000円（税別）／181,500円（税込）', '165,000円（税込）').replace('税別', '（税込）');
     migrated = true;
   }
-  if (c.memo && c.memo.includes('165,000円税別')) {
+  if (typeof c.memo === 'string' && c.memo.includes('165,000円税別')) {
     c.memo = c.memo.replace('165,000円税別', '165,000円（税込）');
     migrated = true;
   }
