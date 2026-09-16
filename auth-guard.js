@@ -6,6 +6,13 @@
   const SUPABASE_URL = 'https://abeekodehorlwsmnhoza.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiZWVrb2RlaG9ybHdzbW5ob3phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxNzAzMTksImV4cCI6MjA5Mjc0NjMxOX0.ZgOB2TUuBBRNV8pejae_UOX9kXIiFb-CS7X0alRX1uU';
 
+  // 共有リンク(?share=...)は顧問向けの公開ページのため、ログインを要求しない。
+  // 表示できるのはそのURLのUUIDに対応する1件のみ（DB側の関数でスコープを限定）。
+  if (new URLSearchParams(location.search).get('share')) {
+    window.__appAuth = { session: null, ready: true };
+    return;
+  }
+
   const hideStyle = document.createElement('style');
   hideStyle.setAttribute('data-auth-guard-hide', '');
   hideStyle.textContent = 'html{visibility:hidden!important}';

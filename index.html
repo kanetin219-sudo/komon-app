@@ -887,7 +887,9 @@ async function syncFromSupabase() {
 
 async function loadFromSupabaseShare(shareId) {
   try {
-    const { data, error } = await sb.from('komon_shares').select('*').eq('id', shareId).single();
+    // UUIDに対応する1件だけを返す関数を使う（テーブル直読みは遮断されている）
+    const { data: _rows, error } = await sb.rpc('get_komon_share', { p_id: shareId });
+    const data = Array.isArray(_rows) ? _rows[0] : null;
     if (error || !data) {
       document.body.innerHTML = '<div style="padding:60px 20px;text-align:center;font-family:-apple-system,sans-serif;color:#475569;"><div style="font-size:48px;margin-bottom:16px;">🔗</div><h2 style="font-size:18px;margin-bottom:8px;">リンクが無効です</h2><p style="font-size:14px;">この共有リンクは期限切れか、無効なリンクです。</p></div>';
       return true;
@@ -964,7 +966,9 @@ async function toggleSbAction(actionId, checked) {
   if (!action) return;
   action.done = checked;
   try {
-    await sb.from('komon_shares').update({ actions: sbShareData.actions }).eq('id', currentShareId);
+    const { error: _upErr } = await sb.rpc('set_komon_share_actions',
+      { p_id: currentShareId, p_actions: sbShareData.actions });
+    if (_upErr) throw _upErr;
     const textEl = document.getElementById(`sbt-${actionId}`);
     if (textEl) { textEl.style.textDecoration = checked ? 'line-through' : 'none'; textEl.style.color = checked ? '#94a3b8' : ''; }
     showToast(checked ? '✅ チェックしました' : 'チェックを外しました');
